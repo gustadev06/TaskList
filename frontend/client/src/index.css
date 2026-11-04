@@ -146,6 +146,9 @@
 .task-status { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; }
 .task-status-open { color: #cf744d; }
 .task-status-done { color: #7fa48b; }
+.task-delete { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; color: #9da49d; transition: color .18s ease, background .18s ease; }
+.task-delete:hover { color: #c2553a; background: #f7e5d6; }
+.task-delete:disabled { opacity: .4; }
 .loading-state, .empty-state, .error-state { display: flex; min-height: 220px; align-items: center; justify-content: center; }
 .loading-state { gap: 10px; color: #969993; font-size: 12px; }
 .empty-state { flex-direction: column; }

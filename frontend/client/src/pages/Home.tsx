@@ -2,7 +2,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   Check,
-  ChevronRight,
   CircleHelp,
   Clock3,
   Command,
@@ -15,6 +14,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ import {
   completeTask,
   createTask,
   DEFAULT_API_URL,
+  deleteTask,
   getApiUrl,
   listTasks,
   setApiUrl,
@@ -43,7 +44,7 @@ function formatToday() {
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${date}`;
 }
 
-function TaskRow({ task, onComplete, busy }: { task: Task; onComplete: (task: Task) => void; busy: boolean }) {
+function TaskRow({ task, onComplete, onDelete, busy }: { task: Task; onComplete: (task: Task) => void; onDelete: (task: Task) => void; busy: boolean }) {
   return (
     <div className={cn("task-row group", task.done && "task-row-done")}>
       <button
@@ -64,8 +65,17 @@ function TaskRow({ task, onComplete, busy }: { task: Task; onComplete: (task: Ta
           <span className="size-1.5 rounded-full bg-current" />
           {task.done ? "Concluída" : "Em aberto"}
         </span>
-        <ChevronRight className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
       </div>
+      <button
+        type="button"
+        aria-label={`Excluir ${task.title}`}
+        title="Excluir tarefa"
+        className="task-delete"
+        onClick={() => onDelete(task)}
+        disabled={busy}
+      >
+        <Trash2 className="size-4" />
+      </button>
     </div>
   );
 }
@@ -158,6 +168,21 @@ export default function Home() {
       toast.success("Feito. Mais uma para a conta.");
     } catch (err) {
       toast.error("Não foi possível concluir", { description: err instanceof Error ? err.message : "Tente novamente." });
+    } finally {
+      setBusyTaskId(null);
+    }
+  }
+
+  async function handleDelete(task: Task) {
+    if (!window.confirm(`Excluir a tarefa "${task.title}"?`)) return;
+
+    setBusyTaskId(task.id);
+    try {
+      await deleteTask(task.id);
+      setTasks((current) => current.filter((item) => item.id !== task.id));
+      toast.success("Tarefa excluída");
+    } catch (err) {
+      toast.error("Não foi possível excluir", { description: err instanceof Error ? err.message : "Tente novamente." });
     } finally {
       setBusyTaskId(null);
     }
@@ -260,7 +285,7 @@ export default function Home() {
             </div>
 
             <div className="task-list">
-              {loading ? <div className="loading-state"><Loader2 className="size-5 animate-spin text-[#cf744d]" /><span>Organizando sua lista...</span></div> : error ? <div className="error-state"><div className="error-icon">!</div><div><p className="font-semibold">Não conseguimos chegar até a sua lista.</p><p className="mt-1 text-sm text-muted-foreground">{error}</p><button type="button" className="error-link" onClick={() => { setDraftApiUrl(apiUrl); setShowSettings(true); }}>Revisar conexão <ArrowUpRight className="size-3.5" /></button></div></div> : visibleTasks.length === 0 ? <div className="empty-state"><div className="empty-icon"><Filter className="size-5" /></div><p className="font-display text-2xl">Nada por aqui ainda.</p><p className="mt-1 max-w-xs text-center text-sm text-muted-foreground">{query ? "Tente outra busca ou limpe o filtro." : filter === "done" ? "As tarefas concluídas aparecem aqui." : "Adicione o primeiro passo e comece o dia."}</p></div> : visibleTasks.map((task) => <TaskRow key={task.id} task={task} busy={busyTaskId === task.id} onComplete={handleComplete} />)}
+              {loading ? <div className="loading-state"><Loader2 className="size-5 animate-spin text-[#cf744d]" /><span>Organizando sua lista...</span></div> : error ? <div className="error-state"><div className="error-icon">!</div><div><p className="font-semibold">Não conseguimos chegar até a sua lista.</p><p className="mt-1 text-sm text-muted-foreground">{error}</p><button type="button" className="error-link" onClick={() => { setDraftApiUrl(apiUrl); setShowSettings(true); }}>Revisar conexão <ArrowUpRight className="size-3.5" /></button></div></div> : visibleTasks.length === 0 ? <div className="empty-state"><div className="empty-icon"><Filter className="size-5" /></div><p className="font-display text-2xl">Nada por aqui ainda.</p><p className="mt-1 max-w-xs text-center text-sm text-muted-foreground">{query ? "Tente outra busca ou limpe o filtro." : filter === "done" ? "As tarefas concluídas aparecem aqui." : "Adicione o primeiro passo e comece o dia."}</p></div> : visibleTasks.map((task) => <TaskRow key={task.id} task={task} busy={busyTaskId === task.id} onComplete={handleComplete} onDelete={handleDelete} />)}
             </div>
             {!loading && !error && visibleTasks.length > 0 && <p className="list-footnote"><span>{visibleTasks.length} {visibleTasks.length === 1 ? "tarefa visível" : "tarefas visíveis"}</span><span className="footnote-separator">·</span><span>{apiUrl.replace(/^https?:\/\//, "")}</span></p>}
           </section>

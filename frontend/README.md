@@ -10,3 +10,7 @@ Consome a API em `http://localhost:3000` (pasta raiz do projeto):
 Se a API estiver em outro endereço, altere em **Configurações → URL da API** dentro do app.
 
 Como rodar: veja o `README.md` na raiz do projeto.
+
+
+1) Para rodar a aplicação basta rodar "npm start"
+2) Abra outro ternminal e rode "npm run front"

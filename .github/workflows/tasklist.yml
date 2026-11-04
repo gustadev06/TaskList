@@ -1,16 +1,68 @@
-name: CD-GitOps
+name: CI - TaskList
 
+# Quando o pipeline roda:
 on:
   push:
     branches:
       - main
       - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # permite rodar manualmente pela aba Actions
+
+env:
+  IMAGE_NAME: tasklist-api
 
 jobs:
-  build:
-    name: Build
+  # 1ª etapa: roda os testes unitários e de integração
+  test:
+    name: Testes
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Baixar o código
         uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Rodar os testes
+        run: npm test
+
+  # 2ª etapa: só roda se os testes passarem
+  # Builda a imagem Docker e publica no Docker Hub
+  docker:
+    name: Build e publicação no Docker Hub
+    runs-on: ubuntu-latest
+    needs: test
+    # Em pull request só roda os testes, não publica imagem
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Preparar o Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build e push da imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ vars.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

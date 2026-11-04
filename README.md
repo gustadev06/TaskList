@@ -41,14 +41,27 @@ Abra http://localhost:5173
 
 ## Rotas da API
 
-| Método | Rota                  | Descrição                                   |
-| ------ | --------------------- | ------------------------------------------- |
-| GET    | `/`                   | Verifica se a API está no ar                |
-| GET    | `/tasks`              | Lista as tarefas                            |
-| POST   | `/tasks`              | Cria tarefa — body: `{ "title": "..." }`    |
-| PATCH  | `/tasks/:id/complete` | Marca a tarefa como concluída               |
+| Método | Rota                  | Descrição                                                        |
+| ------ | --------------------- | ---------------------------------------------------------------- |
+| GET    | `/`                   | Verifica se a API está no ar                                     |
+| GET    | `/tasks`              | Lista as tarefas                                                 |
+| GET    | `/tasks/:id`          | Busca uma tarefa                                                 |
+| POST   | `/tasks`              | Cria tarefa — body: `{ "title": "..." }`                         |
+| PATCH  | `/tasks/:id`          | Edita a tarefa — body: `{ "title": "...", "done": true/false }` |
+| PATCH  | `/tasks/:id/complete` | Marca a tarefa como concluída                                    |
+| DELETE | `/tasks/:id`          | Exclui a tarefa                                                  |
 
-As tarefas ficam só na memória: quando a API é reiniciada, a lista volta a ficar vazia.
+O `title` precisa ser um texto não vazio de até 200 caracteres. Os erros sempre voltam
+em JSON no formato `{ "error": "mensagem" }`.
+
+As tarefas ficam salvas em `data/tasks.json`, então continuam lá quando a API reinicia.
+
+### Variáveis de ambiente
+
+| Variável    | Padrão            | Descrição                         |
+| ----------- | ----------------- | --------------------------------- |
+| `PORT`      | `3000`            | Porta da API                      |
+| `DATA_FILE` | `data/tasks.json` | Arquivo onde as tarefas são salvas |
 
 ## Versão de produção do frontend (opcional)
 
@@ -59,3 +72,43 @@ node dist/index.js
 ```
 
 Abra http://localhost:4173 (a API precisa continuar rodando na 3000).
+
+## Testes
+
+```bash
+npm test
+```
+
+Usa o test runner nativo do Node (`node:test`), sem biblioteca extra. Os testes usam um
+arquivo temporário, então não mexem no `data/tasks.json`.
+
+| Tipo        | Arquivo                    | O que testa                                                          |
+| ----------- | -------------------------- | -------------------------------------------------------------------- |
+| Unitário    | `tests/validacao.test.js`  | A função `validateTitle` isolada (título vazio, só espaços, limite)  |
+| Integração  | `tests/api.test.js`        | Sobe a API numa porta livre e testa todas as rotas via HTTP          |
+
+## Docker
+
+```bash
+docker build -t tasklist-api .
+docker run --rm -p 3000:3000 tasklist-api
+```
+
+A API sobe em http://localhost:3000 dentro do container.
+
+## Pipeline de CI (GitHub Actions)
+
+Arquivo: `.github/workflows/tasklist.yml`. Roda a cada push na `main` ou `develop`:
+
+1. **Testes**: instala as dependências e roda `npm test`
+2. **Build e publicação**: só se os testes passarem, builda a imagem e publica no Docker Hub
+   com as tags `latest` e o hash do commit
+
+Em pull request para a `main` roda só os testes. Também dá pra rodar manualmente pela aba Actions.
+
+Configuração necessária no GitHub (Settings → Secrets and variables → Actions):
+
+| Tipo     | Nome                 | Valor                                  |
+| -------- | -------------------- | -------------------------------------- |
+| Variable | `DOCKERHUB_USERNAME` | Seu usuário do Docker Hub              |
+| Secret   | `DOCKERHUB_TOKEN`    | Token de acesso gerado no Docker Hub   |

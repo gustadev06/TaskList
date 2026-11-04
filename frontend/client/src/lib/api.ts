@@ -68,6 +68,12 @@ export function completeTask(id: number) {
   }).then((result) => result as Task);
 }
 
+export function deleteTask(id: number) {
+  return request<unknown>(`/tasks/${id}`, {
+    method: "DELETE",
+  }).then(() => undefined);
+}
+
 export function checkApi() {
   return request<string>("/");
 }
